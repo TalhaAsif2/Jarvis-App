@@ -1,12 +1,12 @@
 # JARVIS AI (Web) MVP
 
-Full-stack Jarvis web assistant with wake word support, OpenRouter conversation engine, ElevenLabs voice output, SearchAPI search summarization, weather lookup, and sci-fi UI.
+Full-stack Jarvis web assistant with wake word support, OpenAI's GPT conversation engine, ElevenLabs voice output, SearchAPI search summarization, weather lookup, and sci-fi UI.
 
 ## Stack
 
 - Frontend: React (Vite), Tailwind CSS, Framer Motion (hologram-style core UI)
 - Backend: Node.js, Express
-- AI/Voice/Search: OpenRouter, ElevenLabs, SearchAPI
+- AI/Voice/Search: OpenAI, ElevenLabs, SearchAPI
 
 ## Setup
 
@@ -19,8 +19,7 @@ copy .env.example .env
 
 Set:
 
-- `OPENROUTER_API_KEY`
-- Optional: `OPENROUTER_MODEL` (default: `meta-llama/llama-3.3-70b-instruct:free`)
+- `OPENAI_API_KEY`
 - `ELEVENLABS_API_KEY`
 - `SEARCHAPI_API_KEY`
 - Optional: `ELEVENLABS_VOICE_ID`
