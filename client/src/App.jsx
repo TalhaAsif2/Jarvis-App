@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Bot,
-  LoaderCircle,
-  Mic,
-  Power,
-  Sparkles,
-  Keyboard,
-} from "lucide-react";
+import { Bot, Mic, Power, Sparkles, Keyboard } from "lucide-react";
 
 // ── Injected global styles ──────────────────────────────────────────────────
 const GlobalStyles = () => (
@@ -25,7 +18,7 @@ const GlobalStyles = () => (
       --gold:    #f5a623;
       --red:     #ff3b5c;
       --bg:      #020b14;
-      --panel:   rgba(4, 20, 38, 0.85);
+      --panel:   rgba(4, 20, 38, 0.92);
       --border:  rgba(0, 212, 255, 0.18);
       --border-bright: rgba(0, 212, 255, 0.55);
       --text:    #c8eaf5;
@@ -40,13 +33,13 @@ const GlobalStyles = () => (
       background: var(--bg);
       color: var(--text);
       font-family: var(--font-body);
+      overflow-x: hidden;
     }
 
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 2px; }
 
-    /* Scanline overlay */
     body::before {
       content: '';
       pointer-events: none;
@@ -62,14 +55,20 @@ const GlobalStyles = () => (
       z-index: 9999;
     }
 
-    /* Animated grid background */
     .hud-bg {
       background:
         radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,100,180,0.12), transparent),
         radial-gradient(ellipse 60% 80% at 80% 80%, rgba(0,50,120,0.08), transparent),
         linear-gradient(180deg, #020b14 0%, #030f1c 100%);
+      min-height: 100vh;
+      padding: 12px;
       position: relative;
     }
+
+    @media (min-width: 768px) {
+      .hud-bg { padding: 20px; }
+    }
+
     .hud-bg::after {
       content: '';
       position: fixed;
@@ -83,28 +82,20 @@ const GlobalStyles = () => (
       z-index: 0;
     }
 
-    /* Panel glass */
     .panel {
       background: var(--panel);
       border: 1px solid var(--border);
       backdrop-filter: blur(20px) saturate(1.4);
       position: relative;
       overflow: hidden;
-    }
-    .panel::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(0,212,255,0.04) 0%, transparent 50%);
-      pointer-events: none;
+      border-radius: 8px;
     }
 
-    /* Corner brackets */
     .bracket::before, .bracket::after,
     .bracket > .inner::before, .bracket > .inner::after {
       content: '';
       position: absolute;
-      width: 16px; height: 16px;
+      width: 14px; height: 14px;
       border-color: var(--cyan);
       border-style: solid;
       pointer-events: none;
@@ -115,7 +106,6 @@ const GlobalStyles = () => (
     .bracket > .inner::before { bottom: -1px; left: -1px;  border-width: 0 0 2px 2px; }
     .bracket > .inner::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
 
-    /* HUD label */
     .hud-label {
       font-family: var(--font-hud);
       font-size: 9px;
@@ -124,36 +114,8 @@ const GlobalStyles = () => (
       color: var(--cyan-dim);
     }
 
-    /* Blinking cursor */
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
     .blink { animation: blink 1.1s step-end infinite; }
-
-    /* Pulse ring */
-    @keyframes pulseRing {
-      0%   { transform: scale(1);   opacity: 0.6; }
-      100% { transform: scale(1.9); opacity: 0; }
-    }
-
-    /* Data sweep */
-    @keyframes sweep {
-      0%   { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Flicker */
-    @keyframes flicker {
-      0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.7} 94%{opacity:1} 97%{opacity:0.85} 98%{opacity:1}
-    }
-
-    /* Status ticker */
-    @keyframes ticker {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-
-    .arc-glow {
-      filter: drop-shadow(0 0 8px var(--cyan)) drop-shadow(0 0 20px rgba(0,212,255,0.4));
-    }
 
     .btn-hud {
       font-family: var(--font-hud);
@@ -164,13 +126,6 @@ const GlobalStyles = () => (
       transition: all 0.2s;
       position: relative;
       overflow: hidden;
-    }
-    .btn-hud::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent);
-      pointer-events: none;
     }
     .btn-hud:active { transform: scale(0.97); }
 
@@ -193,17 +148,16 @@ const GlobalStyles = () => (
 
     input[type=text] {
       font-family: var(--font-mono);
-      font-size: 13px;
+      font-size: 14px;
       background: rgba(0,20,40,0.9);
       border: 1px solid var(--border);
       color: var(--text);
       outline: none;
       caret-color: var(--cyan);
-      transition: border-color 0.2s, box-shadow 0.2s;
     }
     input[type=text]:focus {
       border-color: var(--cyan-dim);
-      box-shadow: 0 0 0 1px rgba(0,212,255,0.15), inset 0 0 20px rgba(0,212,255,0.04);
+      box-shadow: 0 0 0 1px rgba(0,212,255,0.15);
     }
     input[type=text]::placeholder { color: var(--text-dim); }
   `}</style>
@@ -227,7 +181,6 @@ function ArcReactor({ active, phase }) {
         justifyContent: "center",
       }}
     >
-      {/* Ambient background glow */}
       <div
         style={{
           position: "absolute",
@@ -239,7 +192,6 @@ function ArcReactor({ active, phase }) {
         }}
       />
 
-      {/* Hex grid faint bg */}
       <svg
         style={{
           position: "absolute",
@@ -273,7 +225,6 @@ function ArcReactor({ active, phase }) {
         )}
       </svg>
 
-      {/* Rotating outer rings */}
       {rings.map((r, i) => (
         <motion.div
           key={r}
@@ -292,7 +243,6 @@ function ArcReactor({ active, phase }) {
         />
       ))}
 
-      {/* Radar sweep */}
       <motion.div
         style={{
           position: "absolute",
@@ -320,7 +270,6 @@ function ArcReactor({ active, phase }) {
         />
       </motion.div>
 
-      {/* Tick marks on outermost ring */}
       <svg
         style={{
           position: "absolute",
@@ -348,7 +297,6 @@ function ArcReactor({ active, phase }) {
         })}
       </svg>
 
-      {/* Pulse rings when active */}
       {active &&
         [0, 1, 2].map((i) => (
           <motion.div
@@ -371,7 +319,6 @@ function ArcReactor({ active, phase }) {
           />
         ))}
 
-      {/* Core */}
       <motion.div
         style={{
           position: "relative",
@@ -387,7 +334,6 @@ function ArcReactor({ active, phase }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          transition: "all 0.5s",
           zIndex: 2,
         }}
         animate={{
@@ -396,7 +342,6 @@ function ArcReactor({ active, phase }) {
         transition={{ duration: 0.8, repeat: Infinity }}
         className={active ? "arc-glow" : ""}
       >
-        {/* Inner hex */}
         <svg width="36" height="36" viewBox="0 0 36 36">
           <polygon
             points="18,3 31,10.5 31,25.5 18,33 5,25.5 5,10.5"
@@ -413,7 +358,6 @@ function ArcReactor({ active, phase }) {
         </svg>
       </motion.div>
 
-      {/* Corner HUD decorations */}
       {[
         ["top-3", "left-4"],
         ["top-3", "right-4"],
@@ -448,7 +392,6 @@ function ArcReactor({ active, phase }) {
         </div>
       ))}
 
-      {/* Bottom data readout */}
       <div
         style={{
           position: "absolute",
@@ -494,7 +437,7 @@ function ArcReactor({ active, phase }) {
   );
 }
 
-// ── Wave bars ────────────────────────────────────────────────────────────────
+// ── Speaking Wave ───────────────────────────────────────────────────────────
 function SpeakingWave({ active }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 3, height: 28 }}>
@@ -520,7 +463,7 @@ function SpeakingWave({ active }) {
   );
 }
 
-// ── Ticker strip ─────────────────────────────────────────────────────────────
+// ── Ticker Strip ────────────────────────────────────────────────────────────
 function TickerStrip({ phase }) {
   const msgs = [
     "STARK INDUSTRIES · JARVIS v7.2.1 · AI CORE ONLINE",
@@ -557,7 +500,7 @@ function TickerStrip({ phase }) {
   );
 }
 
-// ── Stat badge ───────────────────────────────────────────────────────────────
+// ── Stat Badge ──────────────────────────────────────────────────────────────
 function StatBadge({ label, value, active }) {
   return (
     <div
@@ -565,11 +508,12 @@ function StatBadge({ label, value, active }) {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "8px 14px",
+        padding: "8px 12px",
         border: "1px solid var(--border)",
         borderRadius: 4,
         background: "rgba(0,20,40,0.6)",
-        minWidth: 64,
+        minWidth: 60,
+        flex: 1,
       }}
     >
       <div
@@ -598,7 +542,7 @@ function StatBadge({ label, value, active }) {
   );
 }
 
-// ── Normalize site ───────────────────────────────────────────────────────────
+// ── Normalize Site ──────────────────────────────────────────────────────────
 function normalizeSite(text) {
   const lower = text.toLowerCase().trim();
   if (lower.includes("youtube")) return "https://youtube.com";
@@ -618,7 +562,7 @@ function normalizeSite(text) {
   return `https://${clean}.com`;
 }
 
-// ── Main App ─────────────────────────────────────────────────────────────────
+// ── Main App ────────────────────────────────────────────────────────────────
 export default function App() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
   const speechSupported = Boolean(
@@ -638,8 +582,8 @@ export default function App() {
   const [textInput, setTextInput] = useState("");
   const [uptime, setUptime] = useState(0);
   const [msgCount, setMsgCount] = useState(0);
-  const messagesEndRef = useRef(null);
 
+  const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const listeningRef = useRef(false);
   const awaitingCommandRef = useRef(false);
@@ -656,18 +600,15 @@ export default function App() {
     isSpeakingRef.current = isSpeaking;
   }, [isSpeaking]);
 
-  // Uptime counter
   useEffect(() => {
     const t = setInterval(() => setUptime((u) => u + 1), 1000);
     return () => clearInterval(t);
   }, []);
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
 
-  // Warm up voices
   useEffect(() => {
     if (!window.speechSynthesis) return;
     const warm = () => window.speechSynthesis.getVoices();
@@ -729,11 +670,13 @@ export default function App() {
         voices.find((v) => v.lang === "en-GB") ||
         voices.find((v) => v.lang.startsWith("en")) ||
         voices[0];
+
       utterance.voice = jarvisVoice;
       utterance.rate = 0.88;
       utterance.pitch = 0.75;
       utterance.volume = 1;
       utterance.text = text.replace(/\./g, "... ").replace(/,/g, ", ");
+
       utterance.onstart = () => {
         setIsSpeaking(true);
         isSpeakingRef.current = true;
@@ -748,6 +691,7 @@ export default function App() {
         setIsSpeaking(false);
         isSpeakingRef.current = false;
       };
+
       speechSynthesis.speak(utterance);
     } catch (err) {
       console.error("TTS:", err);
@@ -756,8 +700,9 @@ export default function App() {
   };
 
   const handleIntentAction = (intent, action) => {
-    if (intent === "action_open" && action?.value)
+    if (intent === "action_open" && action?.value) {
       window.open(normalizeSite(action.value.toLowerCase()), "_blank");
+    }
   };
 
   const sendToJarvis = async (input) => {
@@ -814,7 +759,7 @@ export default function App() {
     }
   };
 
-  // ── Speech recognition ──────────────────────────────────────────────────
+  // Speech Recognition Logic (unchanged)
   const createRecognition = () => {
     const Recognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -950,7 +895,6 @@ export default function App() {
     }
   };
 
-  // ── Derived display values ──────────────────────────────────────────────
   const phaseColor =
     {
       standby: "#4d7a96",
@@ -972,705 +916,655 @@ export default function App() {
   return (
     <>
       <GlobalStyles />
-      <div
-        className="hud-bg"
-        style={{
-          minHeight: "100vh",
-          padding: "20px",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {/* Top header bar */}
+      <div className="hud-bg">
+        {/* Top Header */}
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: "12px",
             marginBottom: 16,
-            padding: "8px 16px",
+            padding: "10px 14px",
             borderBottom: "1px solid var(--border)",
             fontFamily: "var(--font-hud)",
-            fontSize: 10,
-            letterSpacing: "0.25em",
+            fontSize: "9px",
+            letterSpacing: "0.2em",
             color: "var(--text-dim)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ color: "var(--cyan)", fontWeight: 700 }}>
               ◆ STARK INDUSTRIES
             </span>
             <span>J.A.R.V.I.S · v7.2.1</span>
-            <span>BUILD 20240115</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+            }}
+          >
             <span>SESSION · {fmtUptime(uptime)}</span>
             <span>MSGS · {String(msgCount).padStart(4, "0")}</span>
             <motion.span
               style={{ color: isListening ? "var(--cyan)" : "var(--text-dim)" }}
               animate={{ opacity: isListening ? [1, 0.3, 1] : 1 }}
-              transition={{ duration: 1.5, repeat: Infinity }}
             >
               {isListening ? "● LIVE" : "○ OFFLINE"}
             </motion.span>
           </div>
         </div>
 
-        {/* Main grid */}
-        <div
-          style={{
-            maxWidth: 1280,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 20,
-          }}
-        >
-          {/* ── LEFT PANEL ── */}
-          <div className="panel bracket" style={{ borderRadius: 6 }}>
-            <div className="inner">
-              {/* Panel header */}
-              <div
-                style={{
-                  padding: "14px 20px",
-                  borderBottom: "1px solid var(--border)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div>
-                  <div className="hud-label" style={{ marginBottom: 4 }}>
-                    STARK INDUSTRIES · AI DIVISION
+        {/* Responsive Main Grid */}
+        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr",
+              gap: 16,
+              "@media (min-width: 1024px)": { gridTemplateColumns: "1fr 1fr" },
+            }}
+          >
+            {/* LEFT PANEL - Controls + Arc Reactor */}
+            <div className="panel bracket">
+              <div className="inner">
+                <div
+                  style={{
+                    padding: "14px 18px",
+                    borderBottom: "1px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <div className="hud-label" style={{ marginBottom: 4 }}>
+                      STARK INDUSTRIES · AI DIVISION
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-hud)",
+                        fontSize: "clamp(22px, 5.5vw, 28px)",
+                        fontWeight: 900,
+                        color: "var(--cyan)",
+                        letterSpacing: "0.12em",
+                      }}
+                    >
+                      J.A.R.V.I.S
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 11,
+                        color: "var(--text-dim)",
+                        marginTop: 4,
+                      }}
+                    >
+                      Just A Rather Very Intelligent System
+                    </div>
                   </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div className="hud-label" style={{ marginBottom: 6 }}>
+                      STATUS
+                    </div>
+                    <motion.div
+                      style={{
+                        fontFamily: "var(--font-hud)",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: phaseColor,
+                        padding: "5px 12px",
+                        border: `1px solid ${phaseColor}`,
+                        borderRadius: 3,
+                        background: `${phaseColor}18`,
+                        letterSpacing: "0.2em",
+                      }}
+                    >
+                      {phase.toUpperCase()}
+                    </motion.div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    height: "clamp(280px, 42vh, 380px)",
+                    position: "relative",
+                    borderBottom: "1px solid var(--border)",
+                  }}
+                >
+                  <ArcReactor
+                    active={isAwake || isThinking || isSpeaking}
+                    phase={corePhase}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    padding: "12px 16px",
+                    borderBottom: "1px solid var(--border)",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <StatBadge
+                    label="ARC PWR"
+                    value={isListening ? "100%" : "---"}
+                    active={isListening}
+                  />
+                  <StatBadge
+                    label="NEURAL"
+                    value={isThinking ? "PROC" : "IDLE"}
+                    active={isThinking}
+                  />
+                  <StatBadge
+                    label="VOICE"
+                    value={isSpeaking ? "OUT" : "IN"}
+                    active={isSpeaking || isAwake}
+                  />
+                  <StatBadge label="SECURE" value="LVL·5" active={true} />
+                </div>
+
+                <div
+                  style={{
+                    padding: "16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
                   <div
                     style={{
-                      fontFamily: "var(--font-hud)",
-                      fontSize: 28,
-                      fontWeight: 900,
-                      color: "var(--cyan)",
-                      letterSpacing: "0.15em",
-                      lineHeight: 1,
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 10,
                     }}
                   >
-                    J.A.R.V.I.S
+                    <motion.button
+                      className="btn-hud"
+                      onClick={isListening ? stopListening : startListening}
+                      style={{
+                        padding: "14px 12px",
+                        borderRadius: 6,
+                        border: `1px solid ${isListening ? "var(--cyan)" : "var(--border-bright)"}`,
+                        background: isListening
+                          ? "linear-gradient(135deg, rgba(0,212,255,0.22), rgba(0,80,160,0.35))"
+                          : "rgba(0,30,60,0.85)",
+                        color: isListening ? "var(--cyan)" : "var(--text)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        fontSize: "11px",
+                      }}
+                    >
+                      <Mic size={17} />{" "}
+                      {isListening ? "DISABLE MIC" : "ENABLE MIC"}
+                    </motion.button>
+
+                    {isSpeaking ? (
+                      <motion.button
+                        className="btn-hud"
+                        onClick={stopSpeech}
+                        style={{
+                          padding: "14px 12px",
+                          borderRadius: 6,
+                          border: "1px solid var(--red)",
+                          background: "rgba(255,59,92,0.15)",
+                          color: "var(--red)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <Power size={17} /> INTERRUPT
+                      </motion.button>
+                    ) : (
+                      <motion.button
+                        className="btn-hud"
+                        onClick={() => setShowTextInput((s) => !s)}
+                        style={{
+                          padding: "14px 12px",
+                          borderRadius: 6,
+                          border: "1px solid var(--border-bright)",
+                          background: showTextInput
+                            ? "rgba(0,212,255,0.1)"
+                            : "rgba(0,30,60,0.8)",
+                          color: showTextInput ? "var(--cyan)" : "var(--text)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <Keyboard size={17} /> TEXT INPUT
+                      </motion.button>
+                    )}
                   </div>
+
+                  <AnimatePresence>
+                    {showTextInput && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        style={{ overflow: "hidden" }}
+                      >
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input
+                            type="text"
+                            value={textInput}
+                            onChange={(e) => setTextInput(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && sendTextMessage()
+                            }
+                            placeholder="ENTER COMMAND..."
+                            style={{
+                              flex: 1,
+                              padding: "12px 14px",
+                              borderRadius: 6,
+                            }}
+                          />
+                          <motion.button
+                            className="btn-hud"
+                            onClick={sendTextMessage}
+                            style={{
+                              padding: "0 22px",
+                              borderRadius: 6,
+                              background:
+                                "linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,80,200,0.3))",
+                              border: "1px solid var(--cyan-dim)",
+                              color: "var(--cyan)",
+                            }}
+                          >
+                            SEND
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <div
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize: 11,
-                      color: "var(--text-dim)",
-                      marginTop: 4,
-                    }}
-                  >
-                    Just A Rather Very Intelligent System
-                  </div>
-                </div>
-                {/* Phase badge */}
-                <div style={{ textAlign: "right" }}>
-                  <div className="hud-label" style={{ marginBottom: 6 }}>
-                    STATUS
-                  </div>
-                  <motion.div
-                    style={{
-                      fontFamily: "var(--font-hud)",
-                      fontSize: 11,
-                      fontWeight: 700,
                       color: phaseColor,
-                      padding: "5px 12px",
-                      border: `1px solid ${phaseColor}`,
-                      borderRadius: 3,
-                      background: `${phaseColor}18`,
-                      letterSpacing: "0.2em",
-                      boxShadow: `0 0 12px ${phaseColor}40`,
-                    }}
-                    animate={{
-                      boxShadow: [
-                        `0 0 8px ${phaseColor}30`,
-                        `0 0 20px ${phaseColor}60`,
-                        `0 0 8px ${phaseColor}30`,
-                      ],
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    {phase.toUpperCase()}
-                  </motion.div>
-                </div>
-              </div>
-
-              {/* Arc Reactor */}
-              <div
-                style={{
-                  height: 380,
-                  position: "relative",
-                  borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <ArcReactor
-                  active={isAwake || isThinking || isSpeaking}
-                  phase={corePhase}
-                />
-              </div>
-
-              {/* Stats row */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  padding: "12px 16px",
-                  borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <StatBadge
-                  label="ARC PWR"
-                  value={isListening ? "100%" : "---"}
-                  active={isListening}
-                />
-                <StatBadge
-                  label="NEURAL"
-                  value={isThinking ? "PROC" : "IDLE"}
-                  active={isThinking}
-                />
-                <StatBadge
-                  label="VOICE"
-                  value={isSpeaking ? "OUT" : "IN"}
-                  active={isSpeaking || isAwake}
-                />
-                <StatBadge label="SECURE" value="LVL·5" active={true} />
-              </div>
-
-              {/* Controls */}
-              <div
-                style={{
-                  padding: "14px 16px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
-              >
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 10,
-                  }}
-                >
-                  {/* Primary mic button */}
-                  <motion.button
-                    className="btn-hud"
-                    onClick={isListening ? stopListening : startListening}
-                    style={{
-                      padding: "13px 10px",
-                      borderRadius: 4,
-                      border: `1px solid ${isListening ? "var(--cyan)" : "var(--border-bright)"}`,
-                      background: isListening
-                        ? "linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,80,160,0.3))"
-                        : "rgba(0,30,60,0.8)",
-                      color: isListening ? "var(--cyan)" : "var(--text)",
-                      boxShadow: isListening
-                        ? "0 0 20px rgba(0,212,255,0.3)"
-                        : "none",
+                      padding: "10px 14px",
+                      background: "rgba(0,0,0,0.35)",
+                      border: "1px solid rgba(0,212,255,0.1)",
+                      borderRadius: 6,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
                       gap: 8,
                     }}
-                    whileHover={{ boxShadow: "0 0 20px rgba(0,212,255,0.25)" }}
-                    whileTap={{ scale: 0.97 }}
                   >
-                    <motion.div
-                      animate={{ scale: isListening ? [1, 1.3, 1] : 1 }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      <Mic size={16} />
-                    </motion.div>
-                    {isListening ? "DISABLE MIC" : "ENABLE MIC"}
-                  </motion.button>
-
-                  {/* Stop speech / text mode */}
-                  {isSpeaking ? (
-                    <motion.button
-                      className="btn-hud"
-                      onClick={stopSpeech}
-                      style={{
-                        padding: "13px 10px",
-                        borderRadius: 4,
-                        border: "1px solid var(--red)",
-                        background: "rgba(255,59,92,0.15)",
-                        color: "var(--red)",
-                        boxShadow: "0 0 16px rgba(255,59,92,0.25)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
-                      }}
-                      whileTap={{ scale: 0.97 }}
-                    >
-                      <Power size={16} /> INTERRUPT
-                    </motion.button>
-                  ) : (
-                    <motion.button
-                      className="btn-hud"
-                      onClick={() => setShowTextInput((s) => !s)}
-                      style={{
-                        padding: "13px 10px",
-                        borderRadius: 4,
-                        border: "1px solid var(--border-bright)",
-                        background: showTextInput
-                          ? "rgba(0,212,255,0.1)"
-                          : "rgba(0,30,60,0.8)",
-                        color: showTextInput ? "var(--cyan)" : "var(--text)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
-                      }}
-                      whileHover={{
-                        boxShadow: "0 0 16px rgba(0,212,255,0.15)",
-                      }}
-                      whileTap={{ scale: 0.97 }}
-                    >
-                      <Keyboard size={16} /> TEXT INPUT
-                    </motion.button>
-                  )}
-                </div>
-
-                {/* Text input */}
-                <AnimatePresence>
-                  {showTextInput && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      style={{ overflow: "hidden" }}
-                    >
-                      <div style={{ display: "flex", gap: 8, paddingTop: 2 }}>
-                        <input
-                          type="text"
-                          value={textInput}
-                          onChange={(e) => setTextInput(e.target.value)}
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && sendTextMessage()
-                          }
-                          placeholder="ENTER COMMAND..."
-                          style={{
-                            flex: 1,
-                            padding: "10px 14px",
-                            borderRadius: 4,
-                            letterSpacing: "0.05em",
-                          }}
-                        />
-                        <motion.button
-                          className="btn-hud"
-                          onClick={sendTextMessage}
-                          style={{
-                            padding: "10px 18px",
-                            borderRadius: 4,
-                            background:
-                              "linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,80,200,0.3))",
-                            border: "1px solid var(--cyan-dim)",
-                            color: "var(--cyan)",
-                          }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          SEND
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Status line */}
-                <div
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    color: phaseColor,
-                    padding: "8px 12px",
-                    background: "rgba(0,0,0,0.3)",
-                    border: "1px solid rgba(0,212,255,0.08)",
-                    borderRadius: 3,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  {isListening && (
-                    <motion.span
-                      style={{
-                        display: "inline-block",
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: phaseColor,
-                        flexShrink: 0,
-                      }}
-                      animate={{
-                        opacity: [1, 0.2, 1],
-                        boxShadow: [
-                          `0 0 4px ${phaseColor}`,
-                          `0 0 12px ${phaseColor}`,
-                          `0 0 4px ${phaseColor}`,
-                        ],
-                      }}
-                      transition={{ duration: 1.2, repeat: Infinity }}
-                    />
-                  )}
-                  <span>{status}</span>
-                  {isSpeaking && (
-                    <span
-                      style={{ color: "var(--text-dim)", marginLeft: "auto" }}
-                    >
-                      [SAY "HEY JARVIS" TO INTERRUPT]
-                    </span>
-                  )}
-                </div>
-
-                {/* Speaking wave */}
-                {isSpeaking && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      paddingTop: 2,
-                    }}
-                  >
-                    <SpeakingWave active={isSpeaking} />
+                    {isListening && (
+                      <motion.span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: phaseColor,
+                        }}
+                        animate={{ opacity: [1, 0.2, 1] }}
+                      />
+                    )}
+                    <span>{status}</span>
+                    {isSpeaking && (
+                      <span
+                        style={{ color: "var(--text-dim)", marginLeft: "auto" }}
+                      >
+                        [SAY "HEY JARVIS" TO INTERRUPT]
+                      </span>
+                    )}
                   </div>
-                )}
+
+                  {isSpeaking && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        paddingTop: 4,
+                      }}
+                    >
+                      <SpeakingWave active={isSpeaking} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* ── RIGHT PANEL ── */}
-          <div
-            className="panel bracket"
-            style={{
-              borderRadius: 6,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
+            {/* RIGHT PANEL - Messages */}
             <div
-              className="inner"
+              className="panel bracket"
               style={{
                 display: "flex",
                 flexDirection: "column",
-                height: "100%",
+                minHeight: "65vh",
               }}
             >
-              {/* Panel header */}
               <div
+                className="inner"
                 style={{
-                  padding: "14px 20px",
-                  borderBottom: "1px solid var(--border)",
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  flexShrink: 0,
+                  flexDirection: "column",
+                  height: "100%",
                 }}
               >
-                <div>
-                  <div className="hud-label" style={{ marginBottom: 4 }}>
-                    COMMUNICATIONS LOG
+                <div
+                  style={{
+                    padding: "14px 18px",
+                    borderBottom: "1px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexShrink: 0,
+                  }}
+                >
+                  <div>
+                    <div className="hud-label" style={{ marginBottom: 4 }}>
+                      COMMUNICATIONS LOG
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-hud)",
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: "var(--text)",
+                        letterSpacing: "0.15em",
+                      }}
+                    >
+                      DIALOGUE STREAM
+                    </div>
                   </div>
                   <div
-                    style={{
-                      fontFamily: "var(--font-hud)",
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: "var(--text)",
-                      letterSpacing: "0.15em",
-                    }}
+                    style={{ display: "flex", alignItems: "center", gap: 12 }}
                   >
-                    DIALOGUE STREAM
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 10,
+                        color: "var(--text-dim)",
+                      }}
+                    >
+                      {messages.length} ENTRIES
+                    </div>
+                    <motion.div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: isListening
+                          ? "var(--cyan)"
+                          : "var(--text-dim)",
+                        boxShadow: isListening ? "0 0 8px var(--cyan)" : "none",
+                      }}
+                      animate={{ opacity: isListening ? [1, 0.3, 1] : 1 }}
+                    />
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
+
+                <div style={{ flexShrink: 0 }}>
+                  <TickerStrip phase={phase} />
+                </div>
+
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: "auto",
+                    padding: "14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 14,
+                  }}
+                >
+                  {messages.length === 0 && (
+                    <div
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 16,
+                        opacity: 0.35,
+                      }}
+                    >
+                      <svg width="60" height="60" viewBox="0 0 60 60">
+                        <polygon
+                          points="30,5 53,17.5 53,42.5 30,55 7,42.5 7,17.5"
+                          fill="none"
+                          stroke="#00d4ff"
+                          strokeWidth="1"
+                        />
+                        <polygon
+                          points="30,15 43,22.5 43,37.5 30,45 17,37.5 17,22.5"
+                          fill="none"
+                          stroke="#00d4ff"
+                          strokeWidth="0.7"
+                        />
+                        <circle
+                          cx="30"
+                          cy="30"
+                          r="6"
+                          fill="none"
+                          stroke="#00d4ff"
+                          strokeWidth="1"
+                        />
+                      </svg>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-hud)",
+                          fontSize: 10,
+                          color: "var(--text-dim)",
+                          letterSpacing: "0.3em",
+                          textAlign: "center",
+                        }}
+                      >
+                        NO COMMUNICATIONS LOGGED
+                        <br />
+                        ACTIVATE SYSTEM TO BEGIN
+                      </div>
+                    </div>
+                  )}
+
+                  {messages.map((m, idx) => (
+                    <div
+                      key={`${m.role}-${idx}`}
+                      className="msg-bubble"
+                      style={{
+                        display: "flex",
+                        flexDirection:
+                          m.role === "user" ? "row-reverse" : "row",
+                        gap: 10,
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 4,
+                          flexShrink: 0,
+                          border: `1px solid ${m.role === "user" ? "rgba(0,212,255,0.4)" : "rgba(26,111,255,0.4)"}`,
+                          background:
+                            m.role === "user"
+                              ? "rgba(0,212,255,0.1)"
+                              : "rgba(26,111,255,0.1)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontFamily: "var(--font-hud)",
+                          fontSize: 8,
+                          color:
+                            m.role === "user" ? "var(--cyan)" : "var(--blue)",
+                        }}
+                      >
+                        {m.role === "user" ? "SIR" : "AI"}
+                      </div>
+
+                      <div
+                        style={{
+                          maxWidth: "92%",
+                          padding: "11px 15px",
+                          borderRadius: 6,
+                          border: `1px solid ${m.role === "user" ? "rgba(0,212,255,0.2)" : "rgba(26,111,255,0.2)"}`,
+                          background:
+                            m.role === "user"
+                              ? "linear-gradient(135deg, rgba(0,212,255,0.07), rgba(0,60,120,0.2))"
+                              : "linear-gradient(135deg, rgba(26,111,255,0.07), rgba(0,30,80,0.2))",
+                          borderLeft:
+                            m.role === "assistant"
+                              ? "2px solid rgba(26,111,255,0.6)"
+                              : "none",
+                          borderRight:
+                            m.role === "user"
+                              ? "2px solid rgba(0,212,255,0.6)"
+                              : "none",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontFamily: "var(--font-hud)",
+                            fontSize: 8,
+                            color:
+                              m.role === "user" ? "var(--cyan-dim)" : "#1a6fff",
+                            letterSpacing: "0.25em",
+                            marginBottom: 6,
+                          }}
+                        >
+                          {m.role === "user"
+                            ? "YOU · COMMAND INPUT"
+                            : "JARVIS · RESPONSE"}
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: "var(--font-body)",
+                            fontSize: 13.5,
+                            lineHeight: 1.65,
+                            color: "var(--text)",
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
+                          {m.text}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {isThinking && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 4,
+                          flexShrink: 0,
+                          border: "1px solid rgba(26,111,255,0.4)",
+                          background: "rgba(26,111,255,0.1)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontFamily: "var(--font-hud)",
+                          fontSize: 8,
+                          color: "var(--blue)",
+                        }}
+                      >
+                        AI
+                      </div>
+                      <div
+                        style={{
+                          padding: "14px 18px",
+                          border: "1px solid rgba(26,111,255,0.2)",
+                          borderLeft: "2px solid rgba(26,111,255,0.6)",
+                          background:
+                            "linear-gradient(135deg, rgba(26,111,255,0.07), rgba(0,30,80,0.2))",
+                          borderRadius: 6,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 5 }}>
+                          {[0, 1, 2].map((i) => (
+                            <div
+                              key={i}
+                              className="thinking-dot"
+                              style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: "50%",
+                                background: "var(--blue)",
+                                boxShadow: "0 0 6px var(--blue)",
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 11,
+                            color: "var(--text-dim)",
+                            letterSpacing: "0.1em",
+                          }}
+                        >
+                          PROCESSING REQUEST...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <div
+                  style={{
+                    padding: "10px 16px",
+                    borderTop: "1px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Bot size={12} style={{ color: "var(--text-dim)" }} />
+                  <Sparkles size={12} style={{ color: "var(--text-dim)" }} />
+                  <span
                     style={{
                       fontFamily: "var(--font-mono)",
                       fontSize: 10,
                       color: "var(--text-dim)",
+                      letterSpacing: "0.08em",
                     }}
                   >
-                    {messages.length} ENTRIES
-                  </div>
-                  <motion.div
+                    ENABLE LISTENING → SAY "HEY JARVIS" → ISSUE COMMAND
+                  </span>
+                  <span
+                    className="blink"
                     style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: isListening
-                        ? "var(--cyan)"
-                        : "var(--text-dim)",
-                      boxShadow: isListening ? "0 0 8px var(--cyan)" : "none",
+                      marginLeft: "auto",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 11,
+                      color: "var(--cyan-dim)",
                     }}
-                    animate={{ opacity: isListening ? [1, 0.3, 1] : 1 }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  />
+                  >
+                    _
+                  </span>
                 </div>
-              </div>
-
-              {/* Ticker */}
-              <div style={{ flexShrink: 0 }}>
-                <TickerStrip phase={phase} />
-              </div>
-
-              {/* Messages */}
-              <div
-                style={{
-                  flex: 1,
-                  overflowY: "auto",
-                  padding: "16px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                }}
-              >
-                {messages.length === 0 && (
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 16,
-                      opacity: 0.35,
-                    }}
-                  >
-                    <svg width="60" height="60" viewBox="0 0 60 60">
-                      <polygon
-                        points="30,5 53,17.5 53,42.5 30,55 7,42.5 7,17.5"
-                        fill="none"
-                        stroke="#00d4ff"
-                        strokeWidth="1"
-                      />
-                      <polygon
-                        points="30,15 43,22.5 43,37.5 30,45 17,37.5 17,22.5"
-                        fill="none"
-                        stroke="#00d4ff"
-                        strokeWidth="0.7"
-                      />
-                      <circle
-                        cx="30"
-                        cy="30"
-                        r="6"
-                        fill="none"
-                        stroke="#00d4ff"
-                        strokeWidth="1"
-                      />
-                    </svg>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-hud)",
-                        fontSize: 10,
-                        color: "var(--text-dim)",
-                        letterSpacing: "0.3em",
-                        textAlign: "center",
-                      }}
-                    >
-                      NO COMMUNICATIONS LOGGED
-                      <br />
-                      ACTIVATE SYSTEM TO BEGIN
-                    </div>
-                  </div>
-                )}
-
-                {messages.map((m, idx) => (
-                  <div
-                    key={`${m.role}-${idx}`}
-                    className="msg-bubble"
-                    style={{
-                      display: "flex",
-                      flexDirection: m.role === "user" ? "row-reverse" : "row",
-                      gap: 10,
-                      alignItems: "flex-start",
-                    }}
-                  >
-                    {/* Avatar */}
-                    <div
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 3,
-                        flexShrink: 0,
-                        border: `1px solid ${m.role === "user" ? "rgba(0,212,255,0.4)" : "rgba(26,111,255,0.4)"}`,
-                        background:
-                          m.role === "user"
-                            ? "rgba(0,212,255,0.1)"
-                            : "rgba(26,111,255,0.1)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontFamily: "var(--font-hud)",
-                        fontSize: 7,
-                        color:
-                          m.role === "user" ? "var(--cyan)" : "var(--blue)",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      {m.role === "user" ? "SIR" : "AI"}
-                    </div>
-
-                    {/* Bubble */}
-                    <div
-                      style={{
-                        maxWidth: "80%",
-                        padding: "10px 14px",
-                        borderRadius: 4,
-                        border: `1px solid ${m.role === "user" ? "rgba(0,212,255,0.2)" : "rgba(26,111,255,0.2)"}`,
-                        background:
-                          m.role === "user"
-                            ? "linear-gradient(135deg, rgba(0,212,255,0.07), rgba(0,60,120,0.2))"
-                            : "linear-gradient(135deg, rgba(26,111,255,0.07), rgba(0,30,80,0.2))",
-                        borderLeft:
-                          m.role === "assistant"
-                            ? "2px solid rgba(26,111,255,0.6)"
-                            : "none",
-                        borderRight:
-                          m.role === "user"
-                            ? "2px solid rgba(0,212,255,0.6)"
-                            : "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontFamily: "var(--font-hud)",
-                          fontSize: 8,
-                          color:
-                            m.role === "user" ? "var(--cyan-dim)" : "#1a6fff",
-                          letterSpacing: "0.25em",
-                          marginBottom: 6,
-                        }}
-                      >
-                        {m.role === "user"
-                          ? "YOU · COMMAND INPUT"
-                          : "JARVIS · RESPONSE"}
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-body)",
-                          fontSize: 13,
-                          lineHeight: 1.65,
-                          color: "var(--text)",
-                          whiteSpace: "pre-wrap",
-                        }}
-                      >
-                        {m.text}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Thinking indicator */}
-                {isThinking && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "flex-start",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 3,
-                        flexShrink: 0,
-                        border: "1px solid rgba(26,111,255,0.4)",
-                        background: "rgba(26,111,255,0.1)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontFamily: "var(--font-hud)",
-                        fontSize: 7,
-                        color: "var(--blue)",
-                      }}
-                    >
-                      AI
-                    </div>
-                    <div
-                      style={{
-                        padding: "14px 18px",
-                        border: "1px solid rgba(26,111,255,0.2)",
-                        borderLeft: "2px solid rgba(26,111,255,0.6)",
-                        background:
-                          "linear-gradient(135deg, rgba(26,111,255,0.07), rgba(0,30,80,0.2))",
-                        borderRadius: 4,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                      }}
-                    >
-                      <div style={{ display: "flex", gap: 5 }}>
-                        {[0, 1, 2].map((i) => (
-                          <div
-                            key={i}
-                            className="thinking-dot"
-                            style={{
-                              width: 7,
-                              height: 7,
-                              borderRadius: "50%",
-                              background: "var(--blue)",
-                              boxShadow: "0 0 6px var(--blue)",
-                              animationDelay: `${i * 0.2}s`,
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 11,
-                          color: "var(--text-dim)",
-                          letterSpacing: "0.1em",
-                        }}
-                      >
-                        PROCESSING REQUEST...
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Bottom hint */}
-              <div
-                style={{
-                  padding: "10px 16px",
-                  borderTop: "1px solid var(--border)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  flexShrink: 0,
-                }}
-              >
-                <Bot size={12} style={{ color: "var(--text-dim)" }} />
-                <Sparkles size={12} style={{ color: "var(--text-dim)" }} />
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 10,
-                    color: "var(--text-dim)",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  ENABLE LISTENING → SAY "HEY JARVIS" → ISSUE COMMAND
-                </span>
-                <span
-                  className="blink"
-                  style={{
-                    marginLeft: "auto",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    color: "var(--cyan-dim)",
-                  }}
-                >
-                  _
-                </span>
               </div>
             </div>
           </div>
